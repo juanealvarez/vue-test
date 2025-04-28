@@ -1,13 +1,14 @@
-
 <template>
   <div>
     <a href="https://vuejs.org/" target="_blank">
       <img src="./assets/micasino.png" class="logo vue" alt="Vue logo" />
     </a>
   </div>
-  <FormComponent :fieldDefinitions=fieldDefinitions />
+  <FormComponent :fieldDefinitions="fieldDefinitions" :disabledOptions="disabledOptions" @formSubmit="handleFormSubmit" />
 </template>
+
 <script setup lang="ts">
+import { ref } from 'vue';
 import FormComponent from './components/FormComponent.vue';
 
 let fieldDefinitions = [
@@ -17,7 +18,7 @@ let fieldDefinitions = [
     type: 'Text',
     required: true,
   },
-  /* {
+  {
     id: 'options',
     label: 'Options',
       type: 'SelectUnselect',
@@ -36,9 +37,19 @@ let fieldDefinitions = [
         },
       ],
     required: true,
-  } */
+  }
 ];
+
+const disabledOptions = ref<string[]>([]);
+
+function handleFormSubmit(formData: any) {
+  if (Array.isArray(formData.options)) {
+    // Agrega los nuevos ids seleccionados a la lista de deshabilitados, evitando duplicados
+    disabledOptions.value = Array.from(new Set([...disabledOptions.value, ...formData.options]));
+  }
+}
 </script>
+
 <style scoped>
 .logo {
   height: 6em;

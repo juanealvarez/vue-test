@@ -6,7 +6,9 @@
                 <component :is="getComponentName(field)" :field="field"
                     :modelValue="modelValue ? modelValue[field.id] : ''" 
                     @update="updateFormData"
-                    :ref="el => setFieldRef(field, el)" />
+                    :ref="el => setFieldRef(field, el)"
+                    v-bind="field.id === 'options' ? { disabledOptions } : {}"
+                />
             </div>
             <div class="button-container">
                 <button type="submit" class="button primary">Guardar</button>
@@ -32,6 +34,10 @@ const props = defineProps({
     modelValue: {
         type: Object,
         default: () => ({}),
+    },
+    disabledOptions: {
+        type: Array,
+        default: () => ([]),
     }
 });
 let { handleChange, valueFromEvent } = fieldMixin.setup(props, { emit });
@@ -64,6 +70,30 @@ const updateFormData = (idAndValue) => {
 };
 
 const onSubmit = (event) => {
+    // Validar campos requeridos
+    const missingFields = props.fieldDefinitions.filter(field => field.required && (!formData[field.id] || (Array.isArray(formData[field.id]) && formData[field.id].length === 0)));
+    if (missingFields.length > 0) {
+        console.warn('Por favor completa los campos requeridos: ' + missingFields.map(f => f.label).join(', '));
+        // Si falta el campo de opciones, resaltar solo el SelectUnselectField
+        const missingOptions = missingFields.find(f => f.id === 'options');
+        if (missingOptions && fieldRefs['options'] && typeof fieldRefs['options'].showRequiredFeedback === 'function') {
+            fieldRefs['options'].showRequiredFeedback();
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+    }
+    // Normalizar options a array de ids si existe
+    if (formData.options) {
+        // Si es un HTMLCollection o NodeList (caso de selectedOptions)
+        if (typeof formData.options === 'object' && formData.options.length !== undefined && formData.options[0] && formData.options[0].value !== undefined) {
+            formData.options = Array.from(formData.options).map(opt => opt.value);
+        }
+        // Si es un array de objetos con id
+        else if (Array.isArray(formData.options) && formData.options.length > 0 && typeof formData.options[0] === 'object' && formData.options[0].id !== undefined) {
+            formData.options = formData.options.map(opt => opt.id);
+        }
+    }
 
     emit('formSubmit', formData);
 
